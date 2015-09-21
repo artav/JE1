@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en"> 
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.3.min.js" type="text/javascript"></script>
+  <style type="text/css">
+    body {
+      font-family: sans-serif;
+    }
+  
+      .main {
+      border: 1px solid black;
+      box-shadow: 10px 10px 5px #888;
+      border-radius: 12px;
+      padding: 20px;
+      background-color: #ddd;
+      margin: 25px;
+      width: 450px;
+      margin-left:auto;
+      margin-right:auto;  
+    }
+    
+    .logo {
+      width:275px;
+      margin-left: auto;
+      margin-right: auto;
+      display: block;
+      padding: 15px;
+    }
+    
+    .container {
+      -webkit-perspective: 300; 
+      perspective: 300;
+    }
+  </style>
+
+</head>
+<body>
+  <div class="main">
+    <h2>Device Motion</h2>
+    <table>
+      <tr>
+          <td>Event Supported</td><td id="dmEvent"></td>
+        </tr>
+      <tr>
+        <td>acceleration</td><td id="moAccel"></td>
+      </tr>
+      <tr>
+        <td>accelerationIncludingGravity</td><td id="moAccelGrav"></td>
+      </tr>
+      <tr>
+        <td>rotationRate</td><td id="moRotation"></td>
+      </tr>
+      <tr>
+        <td>interval</td><td id="moInterval"></td>
+      </tr>
+    </table>
+  </div>
+  
+  <script type="text/javascript">
+  
+    document.addEventListener("DOMContentLoaded", init, false);
+    var colour=0;
+    var socket = io();
+    var rx, ry, rz, xD, yD, zD = 0;
+    
+    function init() {
+      if ((window.DeviceMotionEvent) || ('listenForDeviceMovement' in window)) {
+        window.addEventListener('devicemotion', deviceMotionHandler, false);
+      } else {
+        document.getElementById("dmEvent").innerHTML = "Not supported on your device or browser.  Sorry."
+      }
+    }
+    
+    function deviceMotionHandler(eventData) {
+      var info, xyz = "[X, Y, Z]";
+      var negTol = -1;
+      // Grab the acceleration including gravity from the results
+      var acceleration = eventData.acceleration;
+      rx = round(acceleration.x);
+      ry = round(acceleration.y);
+      rz = round(acceleration.z);
+      info = xyz.replace("X", rx);
+      info = info.replace("Y", ry);
+      info = info.replace("Z", rz);
+      document.getElementById("moAccel").innerHTML = info;
+
+      info = eventData.interval;
+      document.getElementById("moInterval").innerHTML = info;
+    }
+
+    function sendData(){    //Send data via websocket
+      socket.emit('data', {col: colour, x: rx, y: ry, z: rz});
+      xD = 0;
+      yD = 0;
+      zD = 0;
+    }
+
+    function round(val) {  //round up 
+      var amt = 20;
+      return Math.round(val * amt) /  amt;
+    }
+
+    setInterval(function() {  //Send data every second providing there is significant data to send
+      var result = testData();
+      if (result){
+        sendData();
+      }
+    }, 1000);
+
+    function testData(){  //test that there has been significant movement in one or more axis
+      if (rx > 1) {return true;}
+      if (rx < (-1)) {return true;}
+      if (ry > 1) {return true;}
+      if (ry < (-1)) {return true;}
+      if (rz > 1) {return true;}
+      if (rz < (-1)) {return true;}
+      return false;
+    }
+
+
+  </script>
+  
+</body>
+</html>
